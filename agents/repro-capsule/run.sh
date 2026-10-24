@@ -2,9 +2,9 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$PROJECT_ROOT"
+VENV_PYTHON="$PROJECT_ROOT/.venv/bin/python"
 
-if [[ ! -x .venv/bin/python ]]; then
+if [[ ! -x "$VENV_PYTHON" ]]; then
   PYTHON_BIN=""
   for candidate in python3 python; do
     if command -v "$candidate" >/dev/null 2>&1 &&
@@ -17,11 +17,11 @@ if [[ ! -x .venv/bin/python ]]; then
     echo "Python 3.11+ is required. Install Python and rerun this command." >&2
     exit 1
   fi
-  "$PYTHON_BIN" -m venv .venv
+  "$PYTHON_BIN" -m venv "$PROJECT_ROOT/.venv"
   echo "Created .venv. The agent uses Python standard-library modules only."
 fi
 
-if ! .venv/bin/python -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)'; then
+if ! "$VENV_PYTHON" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)'; then
   echo "The existing .venv uses Python older than 3.11. Remove .venv and rerun with Python 3.11+." >&2
   exit 1
 fi
@@ -46,8 +46,9 @@ if [[ " ${*:-} " == *" --allow-execution "* ]]; then
   fi
 fi
 
+ENV_FILE="$PROJECT_ROOT/.env"
 DOTENV_HAS_KEY=0
-if [[ -f .env ]] && grep -qE '^[[:space:]]*GEMINI_API_KEY[[:space:]]*=[^[:space:]]+' .env; then
+if [[ -f "$ENV_FILE" ]] && grep -qE '^[[:space:]]*GEMINI_API_KEY[[:space:]]*=[^[:space:]]+' "$ENV_FILE"; then
   DOTENV_HAS_KEY=1
 fi
 
@@ -59,4 +60,4 @@ if [[ "${1:-}" == "investigate" && -z "${GEMINI_API_KEY:-}" && "$DOTENV_HAS_KEY"
 fi
 
 export PYTHONPATH="$PROJECT_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
-exec .venv/bin/python -m repro_capsule.cli "$@"
+exec "$VENV_PYTHON" -m repro_capsule.cli "$@"

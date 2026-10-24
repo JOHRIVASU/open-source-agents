@@ -12,7 +12,6 @@ $keyPointer = [IntPtr]::Zero
 $previousDockerBin = $env:REPRO_CAPSULE_DOCKER_BIN
 
 try {
-    Set-Location -LiteralPath $projectRoot
     if (-not (Test-Path -LiteralPath $venvPython)) {
         $pythonLauncher = Get-Command py -ErrorAction SilentlyContinue
         if ($pythonLauncher) {
