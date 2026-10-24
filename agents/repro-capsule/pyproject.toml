@@ -30,6 +30,9 @@ repro-capsule = "repro_capsule.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+repro_capsule = ["ui/*.html"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"

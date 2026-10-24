@@ -66,6 +66,18 @@ bash ./agents/repro-capsule/run.sh demo
 bash ./agents/repro-capsule/run.sh investigate --repo /src/project --report /src/bug-report.md
 ```
 
+To open the local visual dashboard, run `ui` instead of `demo`:
+
+```powershell
+.\agents\repro-capsule\run.cmd ui
+```
+
+```bash
+bash ./agents/repro-capsule/run.sh ui
+```
+
+The dashboard binds only to `127.0.0.1`, opens your browser, and shows a real offline run of the agent-owned fixture plus its generated capsule. It does not need an API key or Docker. Its sample button never runs code from a repository you choose; actual repository execution still requires the CLI's explicit `--allow-execution` flag.
+
 To authorize test execution, add `--allow-execution` to the investigation command. The launcher checks that Docker is running and pulls the fixed Python image if needed. On Windows it resolves Docker Desktop even when its CLI is not on `PATH`.
 
 Alternatively, copy `agents/repro-capsule/.env.example` to `agents/repro-capsule/.env` and add `GEMINI_API_KEY=...` to avoid the hidden prompt. The CLI loads this local file automatically; `.env` is ignored by Git. Do not share or commit it. `run.cmd` works from PowerShell and Command Prompt.

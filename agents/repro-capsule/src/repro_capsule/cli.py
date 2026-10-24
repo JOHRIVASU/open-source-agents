@@ -46,6 +46,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="repro-capsule", description="Investigate and replay Python bug reports safely.")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("demo", help="Run the offline, agent-owned evidence-capture demo.")
+    sub.add_parser("ui", help="Open the local ReproCapsule dashboard in your browser.")
     run = sub.add_parser("investigate", help="Inspect a repository and optionally run fixed tests in Docker.")
     run.add_argument("--repo", type=Path, required=True)
     run.add_argument("--report", type=Path, required=True)
@@ -64,6 +65,10 @@ def main() -> int:
     args = build_parser().parse_args()
     if args.command == "demo":
         return demo()
+    if args.command == "ui":
+        from .server import serve
+
+        return serve()
     try:
         if args.command == "investigate":
             repo = args.repo.resolve(strict=True)
