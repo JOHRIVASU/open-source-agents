@@ -46,4 +46,4 @@ agents/<project-slug>/
 
 | Agent Directory | Description | Framework / Stack | Contributor |
 | :--- | :--- | :--- | :--- |
-| *(None yet)* | *Contributions will appear here once approved and merged.* | — | — |
+| [`issue-repro-agent/`](issue-repro-agent/README.md) | Turns vague bug reports into replayable, evidence-backed Python test reproductions inside an isolated container. | Python, Gemini function calling, Docker | [JOHRIVASU](https://github.com/JOHRIVASU) |
