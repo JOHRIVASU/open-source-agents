@@ -1,11 +1,11 @@
-# Copy to the host repository's .github/workflows/issue-repro-agent.yml.
+# Copy to the host repository's .github/workflows/repro-capsule.yml.
 # Nested workflows are not discovered by GitHub Actions.
-name: Issue Repro Agent
+name: ReproCapsule
 on:
   push:
-    paths: ["agents/issue-repro-agent/**"]
+    paths: ["agents/repro-capsule/**"]
   pull_request:
-    paths: ["agents/issue-repro-agent/**"]
+    paths: ["agents/repro-capsule/**"]
 jobs:
   test:
     strategy:
@@ -16,7 +16,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     defaults:
       run:
-        working-directory: agents/issue-repro-agent
+        working-directory: agents/repro-capsule
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

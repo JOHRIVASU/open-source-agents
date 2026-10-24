@@ -46,4 +46,4 @@ agents/<project-slug>/
 
 | Agent Directory | Description | Framework / Stack | Contributor |
 | :--- | :--- | :--- | :--- |
-| [`issue-repro-agent/`](issue-repro-agent/README.md) | Turns vague bug reports into replayable, evidence-backed Python test reproductions inside an isolated container. | Python, Gemini function calling, Docker | [JOHRIVASU](https://github.com/JOHRIVASU) |
+| [`repro-capsule/`](repro-capsule/README.md) | Runs an opt-in fixed Python test command in a restricted Docker container and saves revision-bound evidence for replay. | Python, Gemini function calling, Docker | [JOHRIVASU](https://github.com/JOHRIVASU) |

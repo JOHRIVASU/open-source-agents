@@ -27,7 +27,7 @@ if ! .venv/bin/python -c 'import sys; raise SystemExit(0 if sys.version_info >= 
 fi
 
 if [[ " ${*:-} " == *" --allow-execution "* ]]; then
-  DOCKER_BIN="${ISSUE_REPRO_DOCKER_BIN:-$(command -v docker || true)}"
+  DOCKER_BIN="${REPRO_CAPSULE_DOCKER_BIN:-$(command -v docker || true)}"
   if [[ -z "$DOCKER_BIN" && -x "$HOME/.docker/bin/docker" ]]; then
     DOCKER_BIN="$HOME/.docker/bin/docker"
   fi
@@ -35,7 +35,7 @@ if [[ " ${*:-} " == *" --allow-execution "* ]]; then
     echo "Docker Engine is required for test execution. Install and start Docker, then rerun." >&2
     exit 1
   fi
-  export ISSUE_REPRO_DOCKER_BIN="$DOCKER_BIN"
+  export REPRO_CAPSULE_DOCKER_BIN="$DOCKER_BIN"
   "$DOCKER_BIN" info >/dev/null 2>&1 || {
     echo "Docker is installed but not running. Start Docker and retry." >&2
     exit 1
@@ -59,4 +59,4 @@ if [[ "${1:-}" == "investigate" && -z "${GEMINI_API_KEY:-}" && "$DOTENV_HAS_KEY"
 fi
 
 export PYTHONPATH="$PROJECT_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
-exec .venv/bin/python -m issue_repro_agent.cli "$@"
+exec .venv/bin/python -m repro_capsule.cli "$@"

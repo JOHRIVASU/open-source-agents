@@ -17,7 +17,7 @@ from .sandbox import SandboxError, TestResult, run_tests
 
 def demo() -> int:
     """Run a shipped, trusted fixture offline to demonstrate evidence capture."""
-    with tempfile.TemporaryDirectory(prefix="issue-repro-demo-") as temp:
+    with tempfile.TemporaryDirectory(prefix="repro-capsule-demo-") as temp:
         root = Path(temp)
         (root / "test_demo.py").write_text(
             "import unittest\nclass Demo(unittest.TestCase):\n"
@@ -43,7 +43,7 @@ def demo() -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="repro-agent", description="Investigate and replay Python bug reports safely.")
+    parser = argparse.ArgumentParser(prog="repro-capsule", description="Investigate and replay Python bug reports safely.")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("demo", help="Run the offline, agent-owned evidence-capture demo.")
     run = sub.add_parser("investigate", help="Inspect a repository and optionally run fixed tests in Docker.")

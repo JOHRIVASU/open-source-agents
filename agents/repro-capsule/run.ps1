@@ -9,7 +9,7 @@ $venvPython = Join-Path $projectRoot '.venv\Scripts\python.exe'
 $createdVenv = $false
 $promptedKey = $false
 $keyPointer = [IntPtr]::Zero
-$previousDockerBin = $env:ISSUE_REPRO_DOCKER_BIN
+$previousDockerBin = $env:REPRO_CAPSULE_DOCKER_BIN
 
 try {
     Set-Location -LiteralPath $projectRoot
@@ -44,7 +44,7 @@ try {
         }
         # Pass the resolved executable through to Python. On Windows Docker Desktop can
         # be installed correctly while its CLI directory is absent from PATH.
-        $env:ISSUE_REPRO_DOCKER_BIN = $dockerExe
+        $env:REPRO_CAPSULE_DOCKER_BIN = $dockerExe
         & $dockerExe info *> $null
         if ($LASTEXITCODE -ne 0) { throw 'Docker is installed but not running. Start Docker Desktop/Engine and retry.' }
         $imageTags = & $dockerExe image ls --format '{{.Repository}}:{{.Tag}}'
@@ -70,7 +70,7 @@ try {
     }
 
     $env:PYTHONPATH = Join-Path $projectRoot 'src'
-    & $venvPython -m issue_repro_agent.cli @AgentArgs
+    & $venvPython -m repro_capsule.cli @AgentArgs
     exit $LASTEXITCODE
 }
 catch {
@@ -79,8 +79,8 @@ catch {
 }
 finally {
     if ($promptedKey) { Remove-Item Env:GEMINI_API_KEY -ErrorAction SilentlyContinue }
-    if ($null -ne $previousDockerBin) { $env:ISSUE_REPRO_DOCKER_BIN = $previousDockerBin }
-    else { Remove-Item Env:ISSUE_REPRO_DOCKER_BIN -ErrorAction SilentlyContinue }
+    if ($null -ne $previousDockerBin) { $env:REPRO_CAPSULE_DOCKER_BIN = $previousDockerBin }
+    else { Remove-Item Env:REPRO_CAPSULE_DOCKER_BIN -ErrorAction SilentlyContinue }
     if ($keyPointer -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($keyPointer) }
     if ($createdVenv) { Write-Host 'Created .venv. The agent uses Python standard-library modules only.' }
 }

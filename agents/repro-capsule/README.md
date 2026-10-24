@@ -1,12 +1,12 @@
-# Issue Repro Agent
+# ReproCapsule
 
-> Turn an ambiguous Python bug report into a replayable, evidence-backed test run without giving an LLM arbitrary shell access.
+> Reproduce Python bug reports with explicit, constrained test execution and replayable evidence—without giving an LLM shell access.
 
 ## Overview
 
 ### Problem statement and intended users
 
-Open-source maintainers and developers lose time translating incomplete bug reports into reproducible failures. Reproduction is also hard to review: the report, environment, command, and test output often live in different places. Issue Repro Agent inspects a repository, explains what evidence it found, and can run one fixed test command inside a network-isolated, read-only Docker container after the user explicitly opts in. It saves the outcome as a portable JSON capsule that another developer can replay.
+Open-source maintainers and developers lose time translating incomplete bug reports into reproducible failures. Reproduction is also hard to review: the report, environment, command, and test output often live in different places. ReproCapsule inspects a repository, explains what evidence it found, and can run one fixed test command inside a network-isolated, read-only Docker container after the user explicitly opts in. It saves the outcome as a portable JSON capsule that another developer can replay.
 
 ### Key features
 
@@ -14,6 +14,10 @@ Open-source maintainers and developers lose time translating incomplete bug repo
 - **Execution control:** No target-repository code runs unless `--allow-execution` is supplied. The only command is Python `unittest` discovery in Docker with a read-only source mount, no network, dropped capabilities, and resource limits.
 - **Replayable evidence:** A versioned capsule records the issue hash, repository commit when available, fixed command, image, isolation settings, status, and bounded output. Capsule content cannot choose the command.
 - **Offline demo:** `run.ps1 demo` or `bash ./run.sh demo` runs a bundled, intentionally failing fixture locally without an API key or Docker. Its capsule is labeled `local_demo` and is not a container-isolation claim or replay capsule.
+
+### What makes ReproCapsule different
+
+Many issue-triage agents stop after identifying likely files or drafting reproduction steps. ReproCapsule's distinctive step is the optional, user-authorized test run: the host invokes one fixed `unittest` command in Docker, then records the repository revision and bounded output in a capsule that can be replayed. The model never gets shell access and cannot select the command.
 
 ## Technical stack
 
@@ -52,19 +56,19 @@ From the repository root, run one command. First use creates `.venv`; there are 
 
 ```powershell
 # Windows PowerShell
-.\agents\issue-repro-agent\run.cmd demo
-.\agents\issue-repro-agent\run.cmd investigate --repo C:\src\project --report C:\src\bug-report.md
+.\agents\repro-capsule\run.cmd demo
+.\agents\repro-capsule\run.cmd investigate --repo C:\src\project --report C:\src\bug-report.md
 ```
 
 ```bash
 # macOS / Linux (bash is included with macOS; no chmod needed)
-bash ./agents/issue-repro-agent/run.sh demo
-bash ./agents/issue-repro-agent/run.sh investigate --repo /src/project --report /src/bug-report.md
+bash ./agents/repro-capsule/run.sh demo
+bash ./agents/repro-capsule/run.sh investigate --repo /src/project --report /src/bug-report.md
 ```
 
 To authorize test execution, add `--allow-execution` to the investigation command. The launcher checks that Docker is running and pulls the fixed Python image if needed. On Windows it resolves Docker Desktop even when its CLI is not on `PATH`.
 
-Alternatively, copy `agents/issue-repro-agent/.env.example` to `agents/issue-repro-agent/.env` and add `GEMINI_API_KEY=...` to avoid the hidden prompt. The CLI loads this local file automatically; `.env` is ignored by Git. Do not share or commit it. `run.cmd` works from PowerShell and Command Prompt.
+Alternatively, copy `agents/repro-capsule/.env.example` to `agents/repro-capsule/.env` and add `GEMINI_API_KEY=...` to avoid the hidden prompt. The CLI loads this local file automatically; `.env` is ignored by Git. Do not share or commit it. `run.cmd` works from PowerShell and Command Prompt.
 
 ## Configuration
 
@@ -78,35 +82,59 @@ Alternatively, copy `agents/issue-repro-agent/.env.example` to `agents/issue-rep
 Run commands from the repository root. Start with the offline demo:
 
 ```powershell
-.\agents\issue-repro-agent\run.cmd demo
+.\agents\repro-capsule\run.cmd demo
 ```
 
 Investigate a report without running repository code (model analysis only):
 
 ```powershell
-.\agents\issue-repro-agent\run.cmd investigate --repo C:\src\project --report C:\src\bug-report.md
+.\agents\repro-capsule\run.cmd investigate --repo C:\src\project --report C:\src\bug-report.md
 ```
 
 Only after reviewing the investigation, explicitly authorize fixed test execution:
 
 ```powershell
-.\agents\issue-repro-agent\run.cmd investigate --repo C:\src\project --report C:\src\bug-report.md --allow-execution --output C:\src\repro-capsule.json
+.\agents\repro-capsule\run.cmd investigate --repo C:\src\project --report C:\src\bug-report.md --allow-execution --output C:\src\repro-capsule.json
 ```
 
 Replay the recorded fixed command against the same checkout (requires the same explicit authorization). Replay blocks if the recorded Git revision differs or cannot be verified. To knowingly replay another revision, add `--allow-revision-mismatch`:
 
 ```powershell
-.\agents\issue-repro-agent\run.cmd replay --repo C:\src\project --capsule C:\src\repro-capsule.json --allow-execution
+.\agents\repro-capsule\run.cmd replay --repo C:\src\project --capsule C:\src\repro-capsule.json --allow-execution
 ```
 
-macOS/Linux commands use `bash ./agents/issue-repro-agent/run.sh` with the same subcommands and flags. For example:
+macOS/Linux commands use `bash ./agents/repro-capsule/run.sh` with the same subcommands and flags. For example:
 
 ```bash
-bash ./agents/issue-repro-agent/run.sh investigate --repo /src/project --report /src/bug-report.md --allow-execution --output /src/repro-capsule.json
-bash ./agents/issue-repro-agent/run.sh replay --repo /src/project --capsule /src/repro-capsule.json --allow-execution --allow-revision-mismatch
+bash ./agents/repro-capsule/run.sh investigate --repo /src/project --report /src/bug-report.md --allow-execution --output /src/repro-capsule.json
+bash ./agents/repro-capsule/run.sh replay --repo /src/project --capsule /src/repro-capsule.json --allow-execution --allow-revision-mismatch
 ```
 
 `investigate` requires `GEMINI_API_KEY`. A failed test run is a valid result and is recorded in the capsule. For authorized execution, the launcher checks Docker and pulls `python:3.12-slim` if it is missing; the container run itself has no network.
+
+## End-to-end example
+
+The bundled sample repository contains a real, intentionally buggy parser: `parse_timeout(0)` incorrectly returns the default because the implementation uses `value or default`. Its test suite has one passing test and one expected failure. This example demonstrates the complete analysis, authorized Docker run, capsule, and replay flow.
+
+From the repository root, first inspect without running the sample repository's code:
+
+```powershell
+.\agents\repro-capsule\run.cmd investigate --repo .\agents\repro-capsule\examples\timeout-bug-repo --report .\agents\repro-capsule\examples\bug-report.md
+```
+
+After reviewing the model's analysis, explicitly authorize the fixed Docker test run and write its capsule:
+
+```powershell
+.\agents\repro-capsule\run.cmd investigate --repo .\agents\repro-capsule\examples\timeout-bug-repo --report .\agents\repro-capsule\examples\bug-report.md --allow-execution --output .\agents\repro-capsule\capsules\timeout-bug.json
+```
+
+Replay that evidence against the same checkout and revision:
+
+```powershell
+.\agents\repro-capsule\run.cmd replay --repo .\agents\repro-capsule\examples\timeout-bug-repo --capsule .\agents\repro-capsule\capsules\timeout-bug.json --allow-execution
+```
+
+On macOS/Linux, use `bash ./agents/repro-capsule/run.sh` with the same arguments. The report-analysis commands require a Gemini API key; test execution and replay require Docker. The expected test result is one failure (`test_explicit_zero_is_preserved`) and one pass. This is a genuine sample-repository run; the exact Gemini analysis text varies by model response. The earlier `demo` command remains an offline onboarding demo and does not exercise model analysis or Docker.
 
 ## Example input and output
 
@@ -131,7 +159,7 @@ Input: `examples/bug-report.md` describes a configuration parser that replaces a
 }
 ```
 
-This is a schema illustration, not a claimed live Gemini or Docker run. The offline demo prints a genuine run of its bundled intentionally failing fixture.
+This capsule is a schema illustration, not a claimed live Gemini or Docker run. The offline `demo` prints a genuine run of its bundled, locally executed onboarding fixture; the end-to-end sample above is the Docker reproduction example.
 
 ## How to test
 
@@ -143,7 +171,7 @@ python -m ruff check .
 python -m unittest discover -s tests -v
 ```
 
-Then run the appropriate launcher from the repository root (`.\agents\issue-repro-agent\run.cmd demo` on Windows or `bash ./agents/issue-repro-agent/run.sh demo` on macOS/Linux).
+Then run the appropriate launcher from the repository root (`.\agents\repro-capsule\run.cmd demo` on Windows or `bash ./agents/repro-capsule/run.sh demo` on macOS/Linux).
 
 Tests verify path traversal rejection, credential-like file filtering, allowlisted model tools, opt-in behavior, bounded output capture, timeout cleanup, fixed Docker isolation arguments, replay revision checks, and capsule tamper rejection. Unit tests mock Gemini and Docker. The offline demo validates launcher startup and evidence formatting but does not validate isolation. A cross-platform CI workflow example is provided at `ci/github-actions.workflow.example.yml`; copy it into the host repo's `.github/workflows/` because GitHub does not discover workflows nested in an agent folder. The workflow exercises Python 3.11+ on Windows, macOS, and Linux.
 

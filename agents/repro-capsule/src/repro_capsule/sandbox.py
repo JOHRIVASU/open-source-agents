@@ -32,8 +32,8 @@ class SandboxError(RuntimeError):
 
 def docker_command(repo: Path, *, container_name: str | None = None) -> list[str]:
     """Build the only command the agent is permitted to run in the repository."""
-    docker_bin = os.environ.get("ISSUE_REPRO_DOCKER_BIN", "docker")
-    container_name = container_name or f"issue-repro-{uuid.uuid4().hex}"
+    docker_bin = os.environ.get("REPRO_CAPSULE_DOCKER_BIN", "docker")
+    container_name = container_name or f"repro-capsule-{uuid.uuid4().hex}"
     return [
         docker_bin, "run", "--rm", "--name", container_name, "--pull=never",
         "--network=none", "--read-only",
@@ -62,10 +62,10 @@ def run_tests(repo: Path, *, allow_execution: bool) -> TestResult:
         raise SandboxError("Repository path must be a directory.")
     if not allow_execution:
         return TestResult("blocked", None, "", "Execution requires --allow-execution.")
-    docker_bin = os.environ.get("ISSUE_REPRO_DOCKER_BIN", "docker")
+    docker_bin = os.environ.get("REPRO_CAPSULE_DOCKER_BIN", "docker")
     if docker_bin == "docker" and not shutil.which(docker_bin):
         raise SandboxError("Docker CLI not found. Install Docker and pre-pull python:3.12-slim.")
-    container_name = f"issue-repro-{uuid.uuid4().hex}"
+    container_name = f"repro-capsule-{uuid.uuid4().hex}"
     try:
         process = subprocess.Popen(
             docker_command(resolved, container_name=container_name),

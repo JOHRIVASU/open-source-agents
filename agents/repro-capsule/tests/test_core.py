@@ -9,10 +9,10 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from issue_repro_agent.capsule import load_capsule, make_capsule, save_capsule
-from issue_repro_agent.cli import main
-from issue_repro_agent.model import investigate
-from issue_repro_agent.sandbox import (
+from repro_capsule.capsule import load_capsule, make_capsule, save_capsule
+from repro_capsule.cli import main
+from repro_capsule.model import investigate
+from repro_capsule.sandbox import (
     OUTPUT_LIMIT,
     SandboxError,
     TestResult,
@@ -20,7 +20,7 @@ from issue_repro_agent.sandbox import (
     docker_command,
     run_tests,
 )
-from issue_repro_agent.tools import list_files, read_file
+from repro_capsule.tools import list_files, read_file
 
 
 class RepoToolsTests(unittest.TestCase):
@@ -62,7 +62,7 @@ class RepoToolsTests(unittest.TestCase):
 
 class ModelTests(unittest.TestCase):
     @patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"})
-    @patch("issue_repro_agent.model._generate")
+    @patch("repro_capsule.model._generate")
     def test_model_only_gets_allowlisted_read_tools(self, generate):
         with tempfile.TemporaryDirectory() as temp:
             repo = Path(temp)
@@ -98,8 +98,8 @@ class SandboxTests(unittest.TestCase):
             self.assertIn("readonly", command[command.index("--mount") + 1])
             self.assertNotIn("shell", command)
 
-    @patch("issue_repro_agent.sandbox.shutil.which", return_value="docker")
-    @patch("issue_repro_agent.sandbox.subprocess.Popen")
+    @patch("repro_capsule.sandbox.shutil.which", return_value="docker")
+    @patch("repro_capsule.sandbox.subprocess.Popen")
     def test_runner_invokes_docker_without_shell(self, popen, _which):
         popen.return_value = SimpleNamespace(
             stdout=BytesIO(), stderr=BytesIO(), returncode=1, wait=Mock(return_value=1),
@@ -116,9 +116,9 @@ class SandboxTests(unittest.TestCase):
         self.assertEqual(len(output[0].encode()), OUTPUT_LIMIT)
         self.assertTrue(output[0].endswith("end"))
 
-    @patch("issue_repro_agent.sandbox.shutil.which", return_value="docker")
-    @patch("issue_repro_agent.sandbox.subprocess.run")
-    @patch("issue_repro_agent.sandbox.subprocess.Popen")
+    @patch("repro_capsule.sandbox.shutil.which", return_value="docker")
+    @patch("repro_capsule.sandbox.subprocess.run")
+    @patch("repro_capsule.sandbox.subprocess.Popen")
     def test_timeout_stops_the_named_container(self, popen, stop, _which):
         process = SimpleNamespace(
             stdout=BytesIO(), stderr=BytesIO(), returncode=0,
@@ -135,12 +135,12 @@ class SandboxTests(unittest.TestCase):
         self.assertEqual(stop.call_args.args[0][0:4], ["docker", "stop", "--time", "1"])
         process.kill.assert_not_called()
 
-    @patch.dict("os.environ", {"ISSUE_REPRO_DOCKER_BIN": r"C:\Docker\docker.exe"})
+    @patch.dict("os.environ", {"REPRO_CAPSULE_DOCKER_BIN": r"C:\Docker\docker.exe"})
     def test_docker_command_uses_launcher_resolved_binary(self):
         with tempfile.TemporaryDirectory() as temp:
             self.assertEqual(docker_command(Path(temp))[0], r"C:\Docker\docker.exe")
 
-    @patch("issue_repro_agent.sandbox.shutil.which", return_value=None)
+    @patch("repro_capsule.sandbox.shutil.which", return_value=None)
     def test_missing_docker_fails_with_setup_help(self, _which):
         with tempfile.TemporaryDirectory() as temp, self.assertRaisesRegex(SandboxError, "pre-pull"):
             run_tests(Path(temp), allow_execution=True)
@@ -171,10 +171,10 @@ class CapsuleTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "not replayable"):
                 load_capsule(destination)
 
-    @patch("issue_repro_agent.cli.run_tests")
-    @patch("issue_repro_agent.cli.repository_revision", return_value="b" * 40)
-    @patch("issue_repro_agent.cli.load_capsule")
-    @patch("sys.argv", ["repro-agent", "replay", "--repo", ".", "--capsule", "capsule.json", "--allow-execution"])
+    @patch("repro_capsule.cli.run_tests")
+    @patch("repro_capsule.cli.repository_revision", return_value="b" * 40)
+    @patch("repro_capsule.cli.load_capsule")
+    @patch("sys.argv", ["repro-capsule", "replay", "--repo", ".", "--capsule", "capsule.json", "--allow-execution"])
     def test_replay_blocks_revision_mismatch_before_execution(self, load, _revision, run_tests_mock):
         load.return_value = {
             "repository_revision": "a" * 40,
@@ -183,10 +183,10 @@ class CapsuleTests(unittest.TestCase):
         self.assertEqual(main(), 2)
         run_tests_mock.assert_not_called()
 
-    @patch("issue_repro_agent.cli.run_tests")
-    @patch("issue_repro_agent.cli.repository_revision", return_value=None)
-    @patch("issue_repro_agent.cli.load_capsule")
-    @patch("sys.argv", ["repro-agent", "replay", "--repo", ".", "--capsule", "capsule.json", "--allow-execution"])
+    @patch("repro_capsule.cli.run_tests")
+    @patch("repro_capsule.cli.repository_revision", return_value=None)
+    @patch("repro_capsule.cli.load_capsule")
+    @patch("sys.argv", ["repro-capsule", "replay", "--repo", ".", "--capsule", "capsule.json", "--allow-execution"])
     def test_replay_blocks_unverifiable_revision_before_execution(
         self, load, _revision, run_tests_mock,
     ):

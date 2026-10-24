@@ -3,9 +3,9 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "issue-repro-agent"
+name = "repro-capsule"
 version = "0.1.0"
-description = "Reproduce Python bug reports safely and preserve replayable evidence capsules."
+description = "Safely execute opt-in Python bug reproductions and preserve replayable evidence capsules."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
@@ -25,7 +25,7 @@ classifiers = [
 dev = ["ruff>=0.11,<1"]
 
 [project.scripts]
-repro-agent = "issue_repro_agent.cli:main"
+repro-capsule = "repro_capsule.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
